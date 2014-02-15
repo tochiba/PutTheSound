@@ -7,6 +7,8 @@
 //
 
 #import "PTSRecommendViewController.h"
+#import "PTSRecommendArtworkView.h"
+#import <AFNetworking/UIImageView+AFNetworking.h>
 
 @interface PTSRecommendViewController ()
 @property (nonatomic) NSArray *recommendItems;
@@ -68,6 +70,23 @@
     [imageView setNeedsLayout];
 }
 
+- (void)p_showImageViewIndicator:(SCOUtilImageView*)imageView show:(BOOL)flag {
+    if(flag){
+        [imageView showPlayView:NO];
+    }
+    else{
+        [imageView showPlayView:YES];
+    }
+}
+
+- (void)p_showRoadingIndicator:(SCOUtilImageView*)imageView show:(BOOL)flag {
+    if(flag){
+        [imageView showPlayIndicatorView:NO];
+    }
+    else{
+        [imageView showPlayIndicatorView:YES];
+    }
+}
 #pragma mark - Table view data source
 
 -(NSInteger)numberOfSectionsInTableView:(UITableView*)tableView {
@@ -84,16 +103,28 @@
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
     
     // Configure the cell...
+    UILabel *alubumLabel = (UILabel*)[cell viewWithTag:500];
+    alubumLabel.text = _recommendItems[indexPath.row][@"collectionName"];
+    
     UILabel *mainLabel = (UILabel*)[cell viewWithTag:200];
     mainLabel.text = _recommendItems[indexPath.row][@"trackName"];
     
     SCOUtilImageView *imageView = (SCOUtilImageView*)[cell viewWithTag:100];
     imageView.delegate = self;
-    UIImage *image = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:_recommendItems[indexPath.row][@"artworkUrl100"]]]];
-    imageView.image = image;
     imageView.songUrl = _recommendItems[indexPath.row][@"previewUrl"];
-    [self p_setUpLabelWithImageView:imageView isPlaying:YES];
     
+    // 画像取得（UIImage+AFNetworking）
+    __weak SCOUtilImageView *weakImageView = imageView;
+    NSURL *url = [NSURL URLWithString:_recommendItems[indexPath.row][@"artworkUrl100"]];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    [imageView setImageWithURLRequest:request placeholderImage:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
+        if (weakImageView) {
+            weakImageView.image = image;
+            [self p_setUpLabelWithImageView:weakImageView isPlaying:YES];
+        }
+    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
+    }];
+
     return cell;
 }
 
@@ -110,6 +141,12 @@
 -(void)didPushImageViewWithDictionary:(NSDictionary *)dictionary {
     NSString *stringUrl = dictionary[@"songUrl"];
     if([_selectedStringUrl isEqualToString:stringUrl]){
+
+        dispatch_async(dispatch_get_main_queue(), ^(){
+            //[self p_showImageViewIndicator:dictionary[@"object"] show:YES];
+            [self p_showRoadingIndicator:dictionary[@"object"] show:YES];
+        });
+
         if(_audioPlayer.playing){
             [self.audioPlayer pause];
             [self p_setUpLabelWithImageView:dictionary[@"object"] isPlaying:YES];
@@ -121,11 +158,28 @@
             return;
         }
     }
+    
+    dispatch_async(dispatch_get_main_queue(), ^(){
+        //[self p_showImageViewIndicator:dictionary[@"object"] show:NO];
+        [self p_showRoadingIndicator:dictionary[@"object"] show:NO];
+    });
+    
     NSURL *url = [NSURL URLWithString:stringUrl];
-    NSData *data = [NSData dataWithContentsOfURL:url];
-    self.audioPlayer = [[AVAudioPlayer alloc] initWithData:data error:nil];
-    [self.audioPlayer play];
-    [self setSelectedStringUrl:stringUrl];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    [NSURLConnection sendAsynchronousRequest:request queue:[NSOperationQueue new] completionHandler:^(NSURLResponse *response, NSData *data, NSError *error){
+        if (data){
+            self.audioPlayer = [[AVAudioPlayer alloc] initWithData:data error:nil];
+            [self.audioPlayer play];
+            dispatch_async(dispatch_get_main_queue(), ^(){
+                //[self p_showImageViewIndicator:dictionary[@"object"] show:YES];
+                [self p_showRoadingIndicator:dictionary[@"object"] show:YES];
+            });
+        }
+    }];
+    
+    //NSData *data = [NSData dataWithContentsOfURL:url];
+    
+       [self setSelectedStringUrl:stringUrl];
     [self p_setUpLabelWithImageView:dictionary[@"object"] isPlaying:NO];
 }
 

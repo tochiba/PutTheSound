@@ -13,7 +13,6 @@
 @property (nonatomic) NSMutableArray *sectionPlayList;
 @property (nonatomic) NSMutableArray *sectionSongs;
 @property (nonatomic) NSMutableDictionary *playListSongs;
-@property (nonatomic) NSDictionary *selectedSong;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 @end
 
@@ -43,12 +42,11 @@
     self.playListSongs = [NSMutableDictionary new];
     
     //iPodの音楽ライブラリから取得
-    MPMediaQuery *myPlaylistsQuery = [MPMediaQuery playlistsQuery];
+    MPMediaQuery *myPlaylistsQuery = [MPMediaQuery albumsQuery];
     NSArray *playlists = [myPlaylistsQuery collections];
     
-    for (MPMediaPlaylist *playlist in playlists) {
-        //section名を配列にセット
-        [self.sectionPlayList addObject:[playlist valueForProperty: MPMediaPlaylistPropertyName]];
+    for (MPMediaItemCollection *playlist in playlists) {
+        [self.sectionPlayList addObject:[playlist.items[0] valueForProperty: MPMediaItemPropertyAlbumTitle]];
         
         //各sectionにぶらさがる曲名用の配列を初期化
         self.sectionSongs  = [NSMutableArray new];
@@ -66,7 +64,7 @@
         }
         
         //1section分のデータができたので、全体テーブル用の配列にセット
-        [self.playListSongs setObject:_sectionSongs forKey:[playlist valueForProperty: MPMediaPlaylistPropertyName]];
+        [self.playListSongs setObject:_sectionSongs forKey:[playlist.items[0] valueForProperty: MPMediaItemPropertyAlbumTitle]];
     }
 }
 

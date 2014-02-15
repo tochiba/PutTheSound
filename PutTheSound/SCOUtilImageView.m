@@ -11,7 +11,8 @@
 @interface SCOUtilImageView () {
     UIView *_loadingView;
     UIActivityIndicatorView *_indicator;
-    UILabel *_label;
+    UIImageView *_playView;
+    UIActivityIndicatorView *_playIndicator;
 }
 
 @end
@@ -46,14 +47,40 @@
         // インジケータ再生
         [_indicator startAnimating];
         
+        _playView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 67.0f, 67.0f)];
+        [_playView setCenter:CGPointMake(_loadingView.bounds.size.width / 2, _loadingView.bounds.size.height / 2)];
         
-        _label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width / 4.0f, self.frame.size.height / 4.0f)];
-        [_label setCenter:CGPointMake(_loadingView.bounds.size.width / 2, _loadingView.bounds.size.height / 2)];
-        _label.backgroundColor = [UIColor whiteColor];
-        _label.alpha = 0.7f;
-        _label.textAlignment = NSTextAlignmentCenter;
-        _label.hidden = YES;
-        [self addSubview:_label];
+        [self addSubview:_playView];
+        
+        
+        // インジケータ作成
+        _playIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+        _playIndicator.activityIndicatorViewStyle = UIActivityIndicatorViewStyleWhite;
+        [_playIndicator setCenter:CGPointMake(_loadingView.bounds.size.width / 2, _loadingView.bounds.size.height / 2)];
+        
+        // ビューに追加
+        [self addSubview:_playIndicator];
+        
+        /*
+        CALayer* subLayer = [CALayer layer];
+        subLayer.frame = self.bounds;
+        [self.layer addSublayer:subLayer];
+        subLayer.masksToBounds = YES;
+        UIBezierPath* path = [UIBezierPath bezierPathWithRect:
+                              CGRectMake(-10.0, self.frame.size.height - 40.0, self.frame.size.width + 20, 50.0)];
+        subLayer.shadowOffset = CGSizeMake(0.0, 10.0);
+        subLayer.shadowColor = [[UIColor blackColor] CGColor];
+        subLayer.shadowOpacity = 0.7;
+        subLayer.shadowPath = [path CGPath];
+        */
+        
+        CAGradientLayer *pageGradient = [CAGradientLayer layer];
+        pageGradient.frame = CGRectMake(0.0, self.frame.size.height - 60.0, self.frame.size.width, 60.0);
+        pageGradient.colors =
+        [NSArray arrayWithObjects:
+         (id)[UIColor colorWithWhite:0.0 alpha:0.0].CGColor,
+         (id)[UIColor colorWithWhite:0.0 alpha:1.0].CGColor, nil];
+        [self.layer insertSublayer:pageGradient atIndex:0];
     }
 }
 
@@ -74,15 +101,21 @@
     if(self.image){
         [_indicator stopAnimating];
         [_loadingView removeFromSuperview];
-        [_label setHidden:NO];
+        if(_playIndicator.hidden){
+            [_playView setHidden:NO];
+        }
+        else{
+            [_playView setHidden:YES];
+        }
+
     }
     else {
-        [_label setHidden:YES];
+        [_playView setHidden:YES];
     }
 
     self.userInteractionEnabled = ([self.songUrl isEqualToString:@""])?NO:YES;
     
-    [self p_setUpLabelTitle];
+    [self p_setUpPlayView];
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -124,8 +157,39 @@
 }
 
 #pragma mark - Private Methods
-- (void)p_setUpLabelTitle{
-    _label.text = !_isPlaying?@"Pause":@"Play";
+- (void)p_setUpPlayView{
+    UIImage *image = [UIImage imageNamed:!_isPlaying?@"stop.png":@"play.png"];
+    _playView.image = image;
+}
+
+#pragma mark - Public Methods
+- (void)showPlayView:(BOOL)flag {
+    
+    if(flag){
+        _playView.hidden = YES;
+        
+        _playIndicator.hidden = NO;
+        [_playIndicator startAnimating];
+    }
+    else{
+        _playView.hidden = NO;
+        
+        _playIndicator.hidden = YES;
+        [_playIndicator stopAnimating];
+    }
+}
+
+- (void)showPlayIndicatorView:(BOOL)flag {
+    if(flag){
+        _playView.hidden = YES;
+        _playIndicator.hidden = NO;
+        [_playIndicator startAnimating];
+    }
+    else{
+        _playView.hidden = NO;
+        _playIndicator.hidden = YES;
+        [_playIndicator stopAnimating];
+    }
 }
 /*
 // Only override drawRect: if you perform custom drawing.
