@@ -8,13 +8,19 @@
 
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MediaPlayer.h>
+#import <AVFoundation/AVFoundation.h>
 #import <iCarousel/iCarousel.h>
 #import <QuartzCore/QuartzCore.h>
+#import <OLGhostAlertView/OLGhostAlertView.h>
+
+#import "PTSMusicStationAPIManager.h"
+#import "SCOUtilImageView.h"
+#import "PTSRecommendArtworkView.h"
 
 @class PTSSlideViewController;
 
 @interface PTSViewController : UIViewController
-<iCarouselDelegate, iCarouselDataSource>
+<iCarouselDelegate, iCarouselDataSource,PTSMusicStationAPIManagerDelegate,SCOUtilImageViewDelegate,UIPickerViewDataSource, UIPickerViewDelegate>
 
 @property (nonatomic, weak) PTSSlideViewController *slideVC;
 

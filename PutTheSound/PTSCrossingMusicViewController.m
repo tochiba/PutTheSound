@@ -1,24 +1,24 @@
 //
-//  PTSRecommendViewController.m
+//  PTSCrossingMusicViewController.m
 //  PutTheSound
 //
-//  Created by 千葉 俊輝 on 2014/02/14.
+//  Created by 千葉 俊輝 on 2014/02/16.
 //  Copyright (c) 2014年 Toshiki Chiba. All rights reserved.
 //
-
-#import "PTSRecommendViewController.h"
-#import "PTSRecommendArtworkView.h"
+#import "PTSCrossingMusicViewController.h"
+#import "PTSCrossingMusicManager.h"
 #import <AFNetworking/UIImageView+AFNetworking.h>
+#import <AVFoundation/AVFoundation.h>
 
-@interface PTSRecommendViewController ()
-@property (nonatomic) NSArray *recommendItems;
+@interface PTSCrossingMusicViewController ()
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
-@property (weak, nonatomic) IBOutlet UIView *indicatorView;
+@property (nonatomic) NSArray *songList;
 @property (nonatomic) AVAudioPlayer *audioPlayer;
 @property (nonatomic) NSString *selectedStringUrl;
+
 @end
 
-@implementation PTSRecommendViewController
+@implementation PTSCrossingMusicViewController
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -33,13 +33,9 @@
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view.
-    [[PTSRecommendAPIManager sharedManager] setDelegate:self];
-    [[PTSRecommendAPIManager sharedManager] request];
-    
+    [self updateTableView];
     [self.tableView setDataSource:self];
     [self.tableView setDelegate:self];
-    
-    [self p_indicatorShow:YES];
 }
 
 - (void)didReceiveMemoryWarning
@@ -48,23 +44,15 @@
     // Dispose of any resources that can be recreated.
 }
 
-#pragma mark - Private Methods
-- (void)p_indicatorShow:(BOOL)flag {
-    if(flag){
-        self.indicatorView.hidden = NO;
-        UIActivityIndicatorView *indicatorView = (UIActivityIndicatorView*)[_indicatorView viewWithTag:300];
-        [indicatorView startAnimating];
-        [self.tableView bringSubviewToFront:_indicatorView];
-    }
-    else{
-        self.indicatorView.hidden = YES;
-        UIActivityIndicatorView *indicatorView = (UIActivityIndicatorView*)[_indicatorView viewWithTag:300];
-        [indicatorView stopAnimating];
-        [self.tableView sendSubviewToBack:_indicatorView];
-        [self.view bringSubviewToFront:_tableView];
-    }
+#pragma mark - Public Methods
+- (void)updateTableView {
+    PTSCrossingMusicManager *manager = [PTSCrossingMusicManager sharedManager];
+    self.songList = [manager getSongsArray];
+    
+    [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
+#pragma mark - Private Methods
 - (void)p_setUpLabelWithImageView:(SCOUtilImageView*)imageView isPlaying:(BOOL)flag {
     imageView.isPlaying = flag;
     [imageView setNeedsLayout];
@@ -94,33 +82,28 @@
 }
 
 - (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section {
-    return _recommendItems.count;
+    return _songList.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    static NSString *CellIdentifier = @"RecommendCell";
+    static NSString *CellIdentifier = @"CrossingCell";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
     
     // Configure the cell...
-    UILabel *alubumLabel = (UILabel*)[cell viewWithTag:500];
-    alubumLabel.text = _recommendItems[indexPath.row][@"collectionName"];
+    UILabel *alubumLabel = (UILabel*)[cell viewWithTag:20];
+    alubumLabel.text = _songList[indexPath.row][@"collectionName"];
     
-    UILabel *mainLabel = (UILabel*)[cell viewWithTag:200];
-    mainLabel.text = _recommendItems[indexPath.row][@"trackName"];
+    UILabel *mainLabel = (UILabel*)[cell viewWithTag:30];
+    mainLabel.text = _songList[indexPath.row][@"trackName"];
     
-    SCOUtilImageView *imageView = (SCOUtilImageView*)[cell viewWithTag:100];
+    SCOUtilImageView *imageView = (SCOUtilImageView*)[cell viewWithTag:50];
     imageView.delegate = self;
-    imageView.songUrl = _recommendItems[indexPath.row][@"previewUrl"];
-    
-    //DLButton
-    UIButton *downLoadButton = (UIButton*)[cell viewWithTag:900];
-    downLoadButton.tag = indexPath.row;
+    imageView.songUrl = _songList[indexPath.row][@"previewUrl"];
     
     // 画像取得（UIImage+AFNetworking）
     __weak SCOUtilImageView *weakImageView = imageView;
-    NSString *urlString = [_recommendItems[indexPath.row][@"artworkUrl100"] stringByReplacingOccurrencesOfString:@"100x100" withString:@"200x200"];
-    NSURL *url = [NSURL URLWithString:urlString];
+    NSURL *url = [NSURL URLWithString:_songList[indexPath.row][@"artworkUrl100"]];
     NSURLRequest *request = [NSURLRequest requestWithURL:url];
     [imageView setImageWithURLRequest:request placeholderImage:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
         if (weakImageView) {
@@ -129,28 +112,19 @@
         }
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
     }];
-
+    
     return cell;
-}
-
-#pragma mark - PTSRecommendAPIManagerDelegate
-- (void)didFinishLoardWithObject:(NSArray *)array {
-    self.recommendItems = array;
-    dispatch_async(dispatch_get_main_queue(), ^(){
-        [self p_indicatorShow:NO];
-        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:UITableViewRowAnimationAutomatic];
-    });
 }
 
 #pragma mark - SCOUtilImageViewDelegate
 -(void)didPushImageViewWithDictionary:(NSDictionary *)dictionary {
     NSString *stringUrl = dictionary[@"songUrl"];
     if([_selectedStringUrl isEqualToString:stringUrl]){
-
+        
         dispatch_async(dispatch_get_main_queue(), ^(){
             [self p_showRoadingIndicator:dictionary[@"object"] show:YES];
         });
-
+        
         if(_audioPlayer.playing){
             [self.audioPlayer pause];
             [self p_setUpLabelWithImageView:dictionary[@"object"] isPlaying:YES];
@@ -181,17 +155,6 @@
     
     [self setSelectedStringUrl:stringUrl];
     [self p_setUpLabelWithImageView:dictionary[@"object"] isPlaying:NO];
-}
-
-#pragma mark - IBAction
-- (IBAction)didPushReturnButton:(id)sender {
-    [self dismissViewControllerAnimated:YES completion:nil];
-}
-- (IBAction)didPushDownLoadButton:(id)sender {
-    NSString *stringUrl = _recommendItems[((UIButton*)sender).tag][@"trackViewUrl"];
-    // 文字列を置換
-    NSString *result = [stringUrl stringByReplacingOccurrencesOfString:@"https" withString:@"itmss"];
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:result]];
 }
 
 @end
