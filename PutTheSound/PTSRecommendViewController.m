@@ -9,6 +9,7 @@
 #import "PTSRecommendViewController.h"
 #import "PTSRecommendArtworkView.h"
 #import "PTSSlideViewController.h"
+#import "PTSMusicRegisterManager.h"
 #import <AFNetworking/UIImageView+AFNetworking.h>
 
 @interface PTSRecommendViewController ()
@@ -192,6 +193,10 @@
         if (data){
             self.audioPlayer = [[AVAudioPlayer alloc] initWithData:data error:nil];
             [self.audioPlayer play];
+            
+            //  登録API
+            //[PTSMusicRegisterManager sharedManager];
+            
             dispatch_async(dispatch_get_main_queue(), ^(){
                 [self p_showRoadingIndicator:dictionary[@"object"] show:YES];
             });
