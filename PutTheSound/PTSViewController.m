@@ -472,6 +472,14 @@
     // UIの更新
     dispatch_async(dispatch_get_main_queue(), ^(){
         [self.carousel setCurrentItemIndex:_playingAlbumIndex];
+        MPMediaItemArtwork *artwork = self.dataModel.playListSongs[self.dataModel.sectionPlayList[_carousel.currentItemIndex]][0][@"ARTWORK"];
+        
+        CATransition* transition = [CATransition animation];
+        transition.duration = 0.3f;
+        transition.type = kCATransitionFade;
+        
+        [self.backgroundImageView.layer addAnimation:transition forKey:nil];
+        self.backgroundImageView.image = [[artwork imageWithSize:self.backgroundImageView.frame.size] applyLightEffect];
     });
 }
 
