@@ -207,7 +207,10 @@
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 - (IBAction)didPushDownLoadButton:(id)sender {
-    NSString *stringUrl = _recommendItems[((UIButton*)sender).tag][@"trackViewUrl"];
+    NSString *stringUrl = _recommendItems[((UIButton*)sender).tag][@"trackviewurl"];
+    if(stringUrl){
+        [stringUrl stringByAppendingString:@"&at=1l3v8Hw"];
+    }
     // 文字列を置換
     NSString *result = [stringUrl stringByReplacingOccurrencesOfString:@"https" withString:@"itmss"];
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:result]];
