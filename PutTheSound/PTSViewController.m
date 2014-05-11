@@ -466,7 +466,7 @@
             lat = [locations[0] doubleValue];
             lon = [locations[1] doubleValue];
         }
-        [[PTSMusicRegisterManager sharedManager] requestRegisterMusicArtist:[self p_getNowArtist] songTitle:[self p_getNowSong] albumTitle:[self p_getNowAlubum] genre:[self p_getNowGenre] WithLat:lat lon:lon];
+        [[PTSMusicRegisterManager sharedManager] requestRegisterMusicArtist:[self p_getNowArtist] songTitle:[self p_getNowSong] albumTitle:[self p_getNowAlubum] genre:[self p_getNowGenre] isRecommend:nil WithLat:lat lon:lon];
     }];
     
     //iBeacon
@@ -502,6 +502,12 @@
     // UIの更新
     dispatch_async(dispatch_get_main_queue(), ^(){
         [self.carousel setCurrentItemIndex:_playingAlbumIndex];
+        //NSLog(@"%@ : %@",self.dataModel.playListSongs,self.dataModel.sectionPlayList);
+        
+        if(_dataModel.sectionPlayList.count < 1){
+            return ;
+        }
+        
         MPMediaItemArtwork *artwork = self.dataModel.playListSongs[self.dataModel.sectionPlayList[_carousel.currentItemIndex]][0][@"ARTWORK"];
         
         CATransition* transition = [CATransition animation];

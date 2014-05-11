@@ -49,29 +49,30 @@ static NSString *const baseRegisterUrl = @"http://www5250up.sakura.ne.jp:3000/ap
     return nil;
 }
 
-// TODO: 位置情報付与
 - (void)requestRegisterMusicArtist:(NSString*)artistName
                          songTitle:(NSString*)songTitle
                          albumTitle:(NSString*)albumTitle
                              genre:(NSString*)genre
+                            isRecommend:(NSString*)isRecommend
                            WithLat:(CLLocationDegrees)lat lon:(CLLocationDegrees)lon
 {
     // 必要情報がなかったら登録処理を行わない
-    if(artistName.length < 1 ||
-       songTitle.length < 1 ||
-       genre.length < 1){
+    if(songTitle.length < 1){
         return;
     }
     
-    
-    NSString *urlString = baseRegisterUrl;//[NSString stringWithFormat:kGetLocationsURLTemplate, lat, fabs(lon)];
+    NSString *urlString = baseRegisterUrl;
     NSURL *requestUrl = [NSURL URLWithString:urlString];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:requestUrl];
     //パラメータを作成
     NSString *userid = [PTSUtilManager getUserID];
-    NSString *body = [NSString stringWithFormat:@"user=%@&track=%@&artist=%@&album=%@&genre=%@&lat=%f&lon=%f", userid, [self p_uriEncodeForString:songTitle], [self p_uriEncodeForString:artistName], [self p_uriEncodeForString:albumTitle],[self p_uriEncodeForString:genre], lat, lon];
     
-    NSLog(@"request body:%@",body);
+    // TODO:レコメンドの場合
+    // isrecommended = true
+    
+    NSString *body = [NSString stringWithFormat:@"user=%@&track=%@&artist=%@&album=%@&genre=%@&lat=%f&lon=%f&isrecommended=%@", userid, [self p_uriEncodeForString:songTitle], [self p_uriEncodeForString:artistName], [self p_uriEncodeForString:albumTitle],[self p_uriEncodeForString:genre], lat, lon, isRecommend];
+    
+    //NSLog(@"request body:%@",body);
     
     [request setHTTPBody:[body dataUsingEncoding:NSUTF8StringEncoding]];
     [request setHTTPMethod:@"POST"];

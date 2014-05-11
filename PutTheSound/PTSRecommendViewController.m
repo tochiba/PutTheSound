@@ -10,6 +10,7 @@
 #import "PTSRecommendArtworkView.h"
 #import "PTSSlideViewController.h"
 #import "PTSMusicRegisterManager.h"
+#import "PTSLocalSearchManager.h"
 #import <AFNetworking/UIImageView+AFNetworking.h>
 
 @interface PTSRecommendViewController ()
@@ -107,6 +108,52 @@
         [imageView showPlayIndicatorView:YES];
     }
 }
+
+- (void)p_registerSong:(NSString*)stringUrl
+{
+    NSDictionary *dic = [self p_getSongData:stringUrl];
+    if(!dic){
+        return;
+    }
+    
+    //RegisterAPIたたく
+    [[PTSLocalSearchManager sharedManager] requestNearestLocations:^(NSArray *locations, NSError *error) {
+        double lat = 0;
+        double lon = 0;
+        if (!error) {
+            lat = [locations[0] doubleValue];
+            lon = [locations[1] doubleValue];
+        }
+        [[PTSMusicRegisterManager sharedManager] requestRegisterMusicArtist:[self p_getArtist:dic] songTitle:[self p_getSong:dic] albumTitle:[self p_getAlbum:dic] genre:nil isRecommend:@"true" WithLat:lat lon:lon];
+    }];
+}
+
+- (NSDictionary*)p_getSongData:(NSString*)songUrl
+{
+    NSDictionary *lDic = nil;
+    for(NSDictionary *dic in _recommendItems){
+        if([dic[@"previewurl"] isEqualToString:songUrl]){
+            lDic = dic;
+        }
+    }
+    return lDic;
+}
+
+- (NSString*)p_getArtist:(NSDictionary*)dic
+{
+    return dic[@"artist"];
+}
+
+- (NSString*)p_getSong:(NSDictionary*)dic
+{
+    return dic[@"track"];
+}
+
+- (NSString*)p_getAlbum:(NSDictionary*)dic
+{
+    return dic[@"collection"];
+}
+
 #pragma mark - Table view data source
 
 -(NSInteger)numberOfSectionsInTableView:(UITableView*)tableView {
@@ -179,6 +226,8 @@
         else{
             [self p_setUpLabelWithImageView:dictionary[@"object"] isPlaying:NO];
             [self.audioPlayer play];
+            //登録API
+            [self p_registerSong:stringUrl];
             return;
         }
     }
@@ -193,10 +242,9 @@
         if (data){
             self.audioPlayer = [[AVAudioPlayer alloc] initWithData:data error:nil];
             [self.audioPlayer play];
-            
-            //  登録API
-            //[PTSMusicRegisterManager sharedManager];
-            
+            //登録API
+            [self p_registerSong:stringUrl];
+
             dispatch_async(dispatch_get_main_queue(), ^(){
                 [self p_showRoadingIndicator:dictionary[@"object"] show:YES];
             });
