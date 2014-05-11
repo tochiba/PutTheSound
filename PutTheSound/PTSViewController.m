@@ -138,11 +138,28 @@
 
 - (NSUInteger)numberOfItemsInCarousel:(iCarousel *)carousel
 {
-    return self.dataModel.sectionPlayList.count;
+    return self.dataModel.sectionPlayList.count == 0 ? 1 : self.dataModel.sectionPlayList.count;
 }
 
 - (UIView *)carousel:(iCarousel *)carousel viewForItemAtIndex:(NSUInteger)index reusingView:(PTSRecommendArtworkView *)view
 {
+    if (self.dataModel.sectionPlayList.count == 0) {
+        CGRect frame = {0.0f,0.0f,220.0f,220.0f};
+        UIView *view = [[UIView alloc] initWithFrame:frame];
+        view.layer.shadowOpacity = 0.7; // 濃さを指定
+        view.layer.shadowRadius = 10.0f;
+        view.layer.shadowOffset = CGSizeMake(0.0, 0.0); // 影までの距離を指定
+        view.backgroundColor = [UIColor whiteColor];
+        
+        UILabel *label = [[UILabel alloc] initWithFrame:frame];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.numberOfLines = 2;
+        label.text = @"ライブラリに\n曲がありません";
+        
+        [view addSubview:label];
+        return view;
+    }
+    
     //create new view if no view is available for recycling
     if (view == nil) {
         view = [PTSRecommendArtworkView instanceFromNib];
@@ -164,6 +181,10 @@
 
 - (void)carousel:(iCarousel *)carousel didSelectItemAtIndex:(NSInteger)index
 {
+    if (self.dataModel.sectionPlayList.count == 0) {
+        return;
+    }
+    
     self.dataModel.selectedSong = self.dataModel.playListSongs[self.dataModel.sectionPlayList[index]][0];
     
     //　プレイリストでグループ化するクエリを生成
@@ -344,19 +365,19 @@
     }
 }
 
-- (IBAction)didPushGetButton:(id)sender {
-    [self p_openControllViewWithContent:_getDetailView];
-}
-
-- (IBAction)didPushPutButton:(id)sender {
-    if (!self.isPlaying) {
-        OLGhostAlertView *ghastly = [[OLGhostAlertView alloc] initWithTitle:nil
-                                                                    message:@"曲が選択されていません"];
-        [ghastly show];
-        return;
-    }
-    [self p_openControllViewWithContent:_putDetailView];
-}
+//- (IBAction)didPushGetButton:(id)sender {
+//    [self p_openControllViewWithContent:_getDetailView];
+//}
+//
+//- (IBAction)didPushPutButton:(id)sender {
+//    if (!self.isPlaying) {
+//        OLGhostAlertView *ghastly = [[OLGhostAlertView alloc] initWithTitle:nil
+//                                                                    message:@"曲が選択されていません"];
+//        [ghastly show];
+//        return;
+//    }
+//    [self p_openControllViewWithContent:_putDetailView];
+//}
 
 - (IBAction)musicControlHandler:(UIPanGestureRecognizer *)sender {
     switch (sender.state) {
@@ -436,9 +457,18 @@
     [self p_updateLabel];
     //StatusBar更新
     [self p_updateStatusBar];
+    
     //RegisterAPIたたく
-    // TODO:latlon処理追加
-    [[PTSMusicRegisterManager sharedManager] requestRegisterMusicArtist:[self p_getNowArtist] songTitle:[self p_getNowSong] albumTitle:[self p_getNowAlubum] genre:[self p_getNowGenre] WithLat:0 lon:0];
+    [[PTSLocalSearchManager sharedManager] requestNearestLocations:^(NSArray *locations, NSError *error) {
+        double lat = 0;
+        double lon = 0;
+        if (!error) {
+            lat = [locations[0] doubleValue];
+            lon = [locations[1] doubleValue];
+        }
+        [[PTSMusicRegisterManager sharedManager] requestRegisterMusicArtist:[self p_getNowArtist] songTitle:[self p_getNowSong] albumTitle:[self p_getNowAlubum] genre:[self p_getNowGenre] WithLat:lat lon:lon];
+    }];
+    
     //iBeacon
     [[PTSPeripheralManager sharedManager] startAdvertising:[self p_getNowArtist] withAlubumName:[self p_getNowAlubum]];
 }
